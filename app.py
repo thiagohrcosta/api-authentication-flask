@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from models.user import User
 from database import db
-from flask_login import LoginManager, login_user, current_user
+from flask_login import LoginManager, login_user, current_user, logout_user, login_required
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'custom_secret_key'
@@ -33,6 +33,26 @@ def login():
       return jsonify({"message": "The user signed in successfully."})
 
   return jsonify({"message": "Invalid credentials"}), 400
+
+@app.route('/logout', methods=['GET'])
+@login_required
+def logout():
+  logout_user()
+  return jsonify({"message": "User logout successfully"})
+
+@app.route('/user', methods=['POST'])
+def create_user():
+  data = request.json
+  username = data.get('username')
+  password = data.get('password')
+
+  if username and password:
+    user = User(username=username, password=password)
+    db.session.add(user)
+    db.session.commit()
+    return jsonify({"message": "User successfully created."})
+
+  return jsonify({'message': 'Invalid data'}), 400
 
 @app.route('/hello-world', methods=['GET'])
 def hellow_world():
