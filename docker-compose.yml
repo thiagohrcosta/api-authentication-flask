@@ -1,0 +1,12 @@
+services:
+  db:
+    image: bitnami/postgresql
+    restart: always
+    environment:
+      - POSTGRESQL_USERNAME=docker
+      - POSTGRESQL_PASSWORD=docker
+      - POSTGRESQL_DATABASE=flask-crud
+    ports:
+      - 5432:5432
+    expose:
+      - 5432:5432
