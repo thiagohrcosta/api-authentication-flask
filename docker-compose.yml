@@ -1,12 +1,15 @@
 services:
   db:
-    image: bitnami/postgresql
+    image: mysql:latest
     restart: always
     environment:
-      - POSTGRESQL_USERNAME=docker
-      - POSTGRESQL_PASSWORD=docker
-      - POSTGRESQL_DATABASE=flask-crud
+      MYSQL_USER: 'admin'
+      MYSQL_PASSWORD: 'admin123'
+      MYSQL_DATABASE: 'flask-crud'
+      MYSQL_ROOT_PASSWORD: 'admin123'
     ports:
-      - 5432:5432
+      - "3306:3306"
     expose:
-      - 5432:5432
+      - '3306'
+    volumes:
+      - ./mysql:/var/lib/mysql
