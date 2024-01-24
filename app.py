@@ -1,3 +1,4 @@
+import bcrypt
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from models.user import User
@@ -5,7 +6,7 @@ from database import db
 from flask_login import LoginManager, login_user, current_user, logout_user, login_required
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = "your_secret_key"
+app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:admin123@localhost:3306/flask-crud'
 
 login_manager = LoginManager()
@@ -24,20 +25,21 @@ def login():
   password = data.get('password')
 
   if username and password:
+
     user = User.query.filter_by(username=username).first()
 
-    if user and user.password == password:
+    if user and bcrypt.checkpw(str.encode(password), str.encode(user.password)):
       login_user(user)
       print(current_user.is_authenticated)
-      return jsonify({"message": "The user signed in successfully."})
+      return jsonify({'message': 'The user signed in successfully.'})
 
-  return jsonify({"message": "Invalid credentials"}), 400
+  return jsonify({'message': 'Invalid credentials'}), 400
 
 @app.route('/logout', methods=['GET'])
 @login_required
 def logout():
   logout_user()
-  return jsonify({"message": "User logout successfully"})
+  return jsonify({'message': 'User logout successfully'})
 
 @app.route('/user', methods=['POST'])
 def create_user():
@@ -45,11 +47,12 @@ def create_user():
   username = data.get('username')
   password = data.get('password')
 
-  if username and password:
-    user = User(username=username, password=password)
+  if username and password: 
+    hashed_password = bcrypt.hashpw(str.encode(password), bcrypt.gensalt())
+    user = User(username=username, password=hashed_password, role='user')
     db.session.add(user)
     db.session.commit()
-    return jsonify({"message": "User successfully created."})
+    return jsonify({'message': 'User successfully created.'})
 
   return jsonify({'message': 'Invalid data'}), 400
 
@@ -60,10 +63,10 @@ def read_user(id_user):
 
   if user:
     return {
-      "username": user.username
+      'username': user.username
     }
   
-  return jsonify({"message": "User not found."}), 404
+  return jsonify({'message': 'User not found.'}), 404
 
 @app.route('/user/<int:id_user>', methods=['PUT'])
 @login_required
@@ -71,28 +74,34 @@ def update_user(id_user):
   data = request.json
   user = User.query.get(id_user)
 
-  if user and data.get("password"):
-    user.password = data.get("password")
+  if id_user != current_user.id and current_user.role == 'user':
+    return jsonify({'message': 'Action not allowed.'}), 403
+  
+  if user and data.get('password'):
+    user.password = data.get('password')
     db.session.commit()
 
-    return jsonify({"message": "User successfully updated."})
+    return jsonify({'message': 'User successfully updated.'})
   
-  return jsonify({"message": "User not found."}), 404
+  return jsonify({'message': 'User not found.'}), 404
 
 @app.route('/user/<int:id_user>', methods=['DELETE'])
 @login_required
 def delete_user(id_user):
   user = User.query.get(id_user)
 
+  if current_user.role != 'admin':
+    return jsonify({'message': 'Action not allowed.'})
+  
   if id_user == current_user.id:
-    return jsonify({"message": "Delete method not allowed."}), 403
+    return jsonify({'message': 'Delete method not allowed.'}), 403
   
   if user: 
     db.session.delete(user)
     db.session.commit()
-    return jsonify({"message": f"User {id_user} successfully deleted."})
+    return jsonify({'message': f'User {id_user} successfully deleted.'})
   
-  return jsonify({"message": "User not found."}), 404
+  return jsonify({'message': 'User not found.'}), 404
 
 @app.route('/hello-world', methods=['GET'])
 def hellow_world():
